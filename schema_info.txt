@@ -1,0 +1,21 @@
+--- SESSIONS Table Info ---
+{'cid': 0, 'name': 'id', 'type': 'INTEGER', 'notnull': 0, 'dflt_value': None, 'pk': 1}
+{'cid': 1, 'name': 'session_token', 'type': 'TEXT', 'notnull': 1, 'dflt_value': None, 'pk': 0}
+{'cid': 2, 'name': 'faculty_id', 'type': 'INTEGER', 'notnull': 1, 'dflt_value': None, 'pk': 0}
+{'cid': 3, 'name': 'subject', 'type': 'TEXT', 'notnull': 1, 'dflt_value': None, 'pk': 0}
+{'cid': 4, 'name': 'latitude', 'type': 'REAL', 'notnull': 0, 'dflt_value': None, 'pk': 0}
+{'cid': 5, 'name': 'longitude', 'type': 'REAL', 'notnull': 0, 'dflt_value': None, 'pk': 0}
+{'cid': 6, 'name': 'radius', 'type': 'REAL', 'notnull': 0, 'dflt_value': None, 'pk': 0}
+{'cid': 7, 'name': 'created_at', 'type': 'TIMESTAMP', 'notnull': 0, 'dflt_value': 'CURRENT_TIMESTAMP', 'pk': 0}
+{'cid': 8, 'name': 'expires_at', 'type': 'TIMESTAMP', 'notnull': 0, 'dflt_value': None, 'pk': 0}
+{'cid': 9, 'name': 'is_active', 'type': 'BOOLEAN', 'notnull': 0, 'dflt_value': '1', 'pk': 0}
+
+--- ATTENDANCE Table Info ---
+{'cid': 0, 'name': 'id', 'type': 'INTEGER', 'notnull': 0, 'dflt_value': None, 'pk': 1}
+{'cid': 1, 'name': 'session_id', 'type': 'INTEGER', 'notnull': 1, 'dflt_value': None, 'pk': 0}
+{'cid': 2, 'name': 'student_id', 'type': 'INTEGER', 'notnull': 1, 'dflt_value': None, 'pk': 0}
+{'cid': 3, 'name': 'marked_at', 'type': 'TIMESTAMP', 'notnull': 0, 'dflt_value': 'CURRENT_TIMESTAMP', 'pk': 0}
+{'cid': 4, 'name': 'status', 'type': 'TEXT', 'notnull': 0, 'dflt_value': "'Present'", 'pk': 0}
+{'cid': 5, 'name': 'full_name', 'type': 'TEXT', 'notnull': 0, 'dflt_value': None, 'pk': 0}
+{'cid': 6, 'name': 'roll_no', 'type': 'TEXT', 'notnull': 0, 'dflt_value': None, 'pk': 0}
+{'cid': 7, 'name': 'device_id', 'type': 'TEXT', 'notnull': 0, 'dflt_value': None, 'pk': 0}

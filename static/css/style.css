@@ -1,0 +1,232 @@
+:root {
+    --primary: #4f46e5;
+    --primary-dark: #4338ca;
+    --secondary: #ec4899;
+    --bg-dark: #0f172a;
+    --bg-card: #1e293b;
+    --text-light: #f8fafc;
+    --text-gray: #94a3b8;
+    --glass: rgba(30, 41, 59, 0.7);
+    --radius: 16px;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Outfit', sans-serif;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-light);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-image: radial-gradient(circle at top right, #312e81 0%, transparent 40%),
+                      radial-gradient(circle at bottom left, #831843 0%, transparent 40%);
+}
+
+.app-container {
+    width: 100%;
+    max-width: 480px; /* Mobile width optimized */
+    min-height: 100vh;
+    background: var(--glass);
+    backdrop-filter: blur(10px);
+    position: relative;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Auth Card */
+.auth-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.auth-card {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2rem;
+    border-radius: var(--radius);
+    width: 100%;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+}
+
+.logo-area i {
+    font-size: 3rem;
+    color: var(--primary);
+    margin-bottom: 1rem;
+    display: inline-block;
+}
+
+.logo-area h1 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.logo-area p {
+    color: var(--text-gray);
+    margin-bottom: 2rem;
+}
+
+/* Role Selector */
+.role-selector {
+    display: flex;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 4px;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+}
+
+.role-btn {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: transparent;
+    color: var(--text-gray);
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.3s;
+    font-weight: 500;
+}
+
+.role-btn.active {
+    background: var(--bg-card);
+    color: var(--text-light);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Inputs & Buttons */
+.input-group {
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+
+.input-group i {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-gray);
+}
+
+input {
+    width: 100%;
+    padding: 1rem 1rem 1rem 3rem;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: white;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+input:focus {
+    border-color: var(--primary);
+}
+
+.btn-primary {
+    width: 100%;
+    padding: 1rem;
+    background: var(--primary);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-primary:active {
+    transform: scale(0.98);
+}
+
+.demo-hint {
+    margin-top: 1.5rem;
+    font-size: 0.8rem;
+    color: var(--text-gray);
+    text-align: center;
+}
+
+/* Dashboard Styles */
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.logout-btn {
+    color: var(--text-gray);
+    text-decoration: none;
+    font-size: 1.5rem;
+}
+
+.card {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.card-title {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    color: var(--text-gray);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+/* QR Scanner Area */
+#reader {
+    width: 100%;
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: #000;
+}
+
+/* Status Indicators */
+.status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.status-present {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+}
+
+.status-absent {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}
+
+/* Location Request */
+.location-request {
+    text-align: center; 
+    padding: 2rem;
+}

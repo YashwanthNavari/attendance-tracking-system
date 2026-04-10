@@ -1,0 +1,6 @@
+flask
+numpy
+face_recognition
+opencv-python-headless
+qrcode[pil]
+gunicorn

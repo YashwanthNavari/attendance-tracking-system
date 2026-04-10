@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.db
+attendance.db
+static/uploads/attendance_faces/*
+!static/uploads/attendance_faces/.gitkeep
+venv/
+.env
+.DS_Store
+*.log

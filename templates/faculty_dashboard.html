@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard-header">
+    <div class="welcome-text">
+        <h2>Faculty Dashboard</h2>
+        <p>Manage your sessions</p>
+    </div>
+    <a href="/logout" class="logout-btn"><i class="ri-logout-box-r-line"></i></a>
+</div>
+
+<!-- Wrap content in a flex container for sidebar layout -->
+<div style="display: flex; gap: 20px; align-items: flex-start;">
+
+    <!-- Sidebar: Session History -->
+    <div class="card" style="width: 300px; max-height: 80vh; overflow-y: auto;">
+        <div class="card-title"><i class="ri-history-line"></i> History</div>
+        <ul id="session-list" style="list-style: none; padding: 0;">
+            <!-- List items injected here -->
+        </ul>
+    </div>
+
+    <!-- Main Content Area -->
+    <div style="flex: 1;">
+        <div class="card">
+            <div class="card-title">
+                <i class="ri-add-circle-line"></i> New Session
+            </div>
+
+            <div class="input-group">
+                <input type="text" id="subject" placeholder="Subject / Course Name" required>
+            </div>
+
+            <!-- Location Settings -->
+            <div class="input-group">
+                <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 0.5rem;">
+                    <input type="checkbox" id="use-location" checked>
+                    <label for="use-location">Enable Geo-Fencing (50m)</label>
+                </div>
+                <p id="location-status" style="font-size: 0.8rem; color: var(--text-gray);">Location not set</p>
+            </div>
+
+            <button onclick="startSession()" class="btn-primary">
+                Generate QR Code <i class="ri-qr-code-line"></i>
+            </button>
+        </div>
+
+        <div id="qr-display-area" class="card" style="display: none; text-align: center;">
+            <div class="card-title">Session Active</div>
+            <div id="qr-code-image" style="margin: 20px 0;"></div>
+            <p>Session ID: <span id="session-id-display" style="font-weight: bold; color: var(--primary-color);"></span>
+            </p>
+        </div>
+
+        <!-- Live Logs Section -->
+        <div id="logs-area" class="card" style="display: none;">
+            <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+                <span><i class="ri-file-list-3-line"></i> Attendance Log <span id="current-view-subject"
+                        style="font-weight: normal; font-size: 0.9em; margin-left: 10px;"></span></span>
+                <button onclick="downloadReport()"
+                    style="background: #3b82f6; border: none; padding: 5px 10px; border-radius: 4px; color: white; cursor: pointer; font-size: 0.9rem;">
+                    <i class="ri-download-cloud-2-line"></i> Export
+                </button>
+            </div>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid #333;">
+                            <th style="padding: 8px;">Name</th>
+                            <th style="padding: 8px;">Roll No</th>
+                            <th style="padding: 8px;">Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendance-table-body">
+                        <!-- Rows will be added here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    let currentLatitude = null;
+    let currentLongitude = null;
+    let currentSessionId = null;
+    let pollInterval = null;
+
+    function downloadReport() {
+        if (!currentSessionId) {
+            alert("No session selected");
+            return;
+        }
+        window.location.href = `/api/export_attendance/${currentSessionId}`;
+    }
+
+    // Get location on load
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                currentLatitude = position.coords.latitude;
+                currentLongitude = position.coords.longitude;
+                document.getElementById('location-status').innerText = `Lat: ${currentLatitude.toFixed(4)}, Lng: ${currentLongitude.toFixed(4)}`;
+                document.getElementById('location-status').style.color = '#34d399';
+            },
+            (error) => {
+                console.error(error);
+                document.getElementById('location-status').innerText = "Location permission denied or unavailable.";
+            }
+        );
+    }
+
+    // Load History on Start
+    loadSessionHistory();
+
+    async function loadSessionHistory() {
+        try {
+            const res = await fetch('/api/my_sessions');
+            const json = await res.json();
+            if (json.status === 'success') {
+                const list = document.getElementById('session-list');
+                list.innerHTML = '';
+                json.data.forEach(s => {
+                    const li = document.createElement('li');
+                    li.style.padding = "10px";
+                    li.style.borderBottom = "1px solid #333";
+                    li.style.cursor = "pointer";
+                    li.innerHTML = `
+                        <div style="font-weight: bold;">${s.subject}</div>
+                        <div style="font-size: 0.8rem; color: #aaa;">${new Date(s.created_at).toLocaleString()}</div>
+                        <div style="font-size: 0.8rem; color: var(--primary-color);">${s.count} Students</div>
+                    `;
+                    li.onclick = () => viewSession(s.id, s.subject);
+                    list.appendChild(li);
+                });
+            }
+        } catch (e) {
+            console.error("Error fetching history", e);
+        }
+    }
+
+    function viewSession(id, subject) {
+        currentSessionId = id;
+        document.getElementById('current-view-subject').innerText = `- ${subject}`;
+        document.getElementById('logs-area').style.display = 'block';
+        document.getElementById('qr-display-area').style.display = 'none'; // Hide QR for past sessions
+
+        // Stop polling if switching views manually, or keep it? 
+        // Logic: if it's old session, polling might be redundant but harmless. 
+        // Let's doing one-time fetch.
+        if (pollInterval) clearInterval(pollInterval);
+        fetchLogs();
+    }
+
+    async function startSession() {
+        const subject = document.getElementById('subject').value;
+        if (!subject) return alert("Please enter a subject");
+        const useLocation = document.getElementById('use-location').checked;
+
+        const payload = {
+            subject: subject,
+            latitude: useLocation ? currentLatitude : null,
+            longitude: useLocation ? currentLongitude : null,
+            radius: 50 // meters
+        };
+
+        try {
+            const response = await fetch('/api/generate_qr', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                document.getElementById('qr-display-area').style.display = 'block';
+                document.getElementById('logs-area').style.display = 'block';
+                document.getElementById('current-view-subject').innerText = `- ${subject}`;
+
+                currentSessionId = data.session_id;
+                document.getElementById('session-id-display').innerText = data.session_id;
+
+                // QR Display
+                const fullUrl = window.location.origin + '/attendance/' + data.qr_data;
+                document.getElementById('qr-code-image').innerHTML = `
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(fullUrl)}" alt="QR Code">
+            `;
+                document.getElementById('qr-code-image').innerHTML += `<p style="font-size:0.8rem; margin-top:5px; color:#333;">Scan to mark</p>`;
+
+                // Start Polling for LIVE session
+                if (pollInterval) clearInterval(pollInterval);
+                pollInterval = setInterval(fetchLogs, 3000);
+                fetchLogs();
+
+                // Refresh history list
+                loadSessionHistory();
+
+            } else {
+                alert(data.message);
+            }
+        } catch (e) {
+            console.error("Session Creation Error:", e);
+            alert("Error creating session: " + e.message);
+        }
+    }
+
+    async function fetchLogs() {
+        if (!currentSessionId) return;
+
+        try {
+            const res = await fetch(`/api/session_attendance/${currentSessionId}`);
+            const json = await res.json();
+
+            if (json.status === 'success') {
+                const tbody = document.getElementById('attendance-table-body');
+                tbody.innerHTML = '';
+
+                json.data.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.style.borderBottom = "1px solid rgba(255,255,255,0.05)";
+                    const timeStr = new Date(row.marked_at).toLocaleTimeString();
+
+                    tr.innerHTML = `
+                        <td style="padding: 8px;">${row.full_name || 'N/A'}</td>
+                        <td style="padding: 8px;">${row.roll_no || 'N/A'}</td>
+                        <td style="padding: 8px; font-size: 0.8rem; color: #94a3b8;">${timeStr}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        } catch (e) {
+            console.log("Polling error", e);
+        }
+    }
+</script>
+{% endblock %}

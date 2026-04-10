@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <div class="logo-area">
+            <i class="ri-qr-scan-2-line"></i>
+            <h1>Attendify</h1>
+            <p>Smart Attendance System</p>
+        </div>
+
+        <div class="role-selector">
+            <button class="role-btn active" onclick="setRole('student')">Student</button>
+            <button class="role-btn" onclick="setRole('faculty')">Faculty</button>
+        </div>
+
+        <form id="loginForm" onsubmit="handleLogin(event)">
+            <input type="hidden" id="role" name="role" value="student">
+
+            <div class="input-group">
+                <i class="ri-user-line"></i>
+                <input type="text" id="username" placeholder="Username" required>
+            </div>
+
+            <button type="submit" class="btn-primary">
+                Login <i class="ri-arrow-right-line"></i>
+            </button>
+        </form>
+
+        <p class="demo-hint">Demo: student1 / faculty1</p>
+    </div>
+</div>
+{% endblock %}

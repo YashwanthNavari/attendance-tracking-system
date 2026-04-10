@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block scripts %}
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <div class="welcome-text">
+        <h2>Student Dashboard</h2>
+        <p>Mark your attendance</p>
+    </div>
+    <a href="/logout" class="logout-btn"><i class="ri-logout-box-r-line"></i></a>
+</div>
+
+<div class="card">
+    <div class="card-title">
+        <i class="ri-map-pin-line"></i> Location Check
+    </div>
+    <p id="location-status" class="status">Getting location...</p>
+</div>
+
+<div class="card">
+    <div class="card-title">
+        <i class="ri-camera-lens-line"></i> Scan QR Code
+    </div>
+
+    <div id="reader"></div>
+
+    <button id="start-scan-btn" onclick="startScanner()" class="btn-primary" style="margin-top: 1rem;">
+        Start Camera
+    </button>
+    <button id="stop-scan-btn" onclick="stopScanner()" class="btn-primary"
+        style="display: none; background-color: var(--secondary); margin-top: 1rem;">
+        Stop Camera
+    </button>
+</div>
+
+<div class="card">
+    <div class="card-title">
+        <i class="ri-face-recognition-line"></i> Face ID
+    </div>
+    <div style="text-align: center;">
+        <video id="face-video" style="width: 100%; border-radius: 8px; display:none;" autoplay playsinline></video>
+        <canvas id="face-canvas" style="display:none;"></canvas>
+        <img id="face-preview" style="width: 100%; border-radius: 8px; display:none; margin-bottom: 1rem;">
+
+        <button onclick="startFaceCam()" id="id-btn-start" class="btn-primary" style="margin-bottom: 0.5rem;">Setup Face
+            ID</button>
+        <button onclick="captureFace()" id="id-btn-capture" class="btn-primary"
+            style="background: var(--secondary); display:none;">Capture & Register</button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-title">Recent Attendance</div>
+    <div id="attendance-list">
+        <!-- populated dynamically -->
+    </div>
+</div>
+
+<script>
+    let html5QrcodeScanner;
+    let currentCoords = null;
+
+    // 1. Get Location immediately
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                currentCoords = pos.coords;
+                document.getElementById('location-status').innerHTML = '<i class="ri-check-line"></i> Location Locked';
+                document.getElementById('location-status').classList.add('status-present');
+            },
+            (err) => {
+                document.getElementById('location-status').innerHTML = '<i class="ri-close-line"></i> Permission Denied';
+                document.getElementById('location-status').classList.add('status-absent');
+            }
+        );
+    }
+
+    // 2. Scanner Logic
+    function startScanner() {
+        document.getElementById('start-scan-btn').style.display = 'none';
+        document.getElementById('stop-scan-btn').style.display = 'flex';
+
+        html5QrcodeScanner = new Html5Qrcode("reader");
+        html5QrcodeScanner.start(
+            { facingMode: "environment" },
+            {
+                fps: 10,
+                qrbox: { width: 250, height: 250 }
+            },
+            (decodedText, decodedResult) => {
+                // Handle success
+                html5QrcodeScanner.stop();
+                handleScanSuccess(decodedText);
+            },
+            (errorMessage) => {
+                // parse error, ignore
+            }
+        ).catch(err => {
+            console.log(err);
+            alert("Camera error");
+        });
+    }
+
+    function stopScanner() {
+        if (html5QrcodeScanner) {
+            html5QrcodeScanner.stop().then(() => {
+                document.getElementById('start-scan-btn').style.display = 'flex';
+                document.getElementById('stop-scan-btn').style.display = 'none';
+            });
+        }
+    }
+
+    // 3. Face Capture & Attendance Submission
+    async function handleScanSuccess(qrData) {
+        alert("QR Scanned! Verifying...");
+
+        // Capture Face (Mock for now, or use video stream snapshot)
+        // For this prototype, we will skip actual face matching if privacy is an issue, 
+        // but the plan says we should try. We'll capture a frame.
+
+        // In a real PWA on mobile, we might need a separate step to capture face 
+        // because the QR scanner occupied the camera.
+        // For simplicity: We send the QR data + Location to the backend. 
+        // The backend can mock face check or we can add a second step "Verify Face".
+
+        submitAttendance(qrData);
+    }
+
+    async function submitAttendance(qrData) {
+        // 1. Capture Face snapshot silently if possible, or use the last captured frame
+        // For this flow, we'll try to get a fresh frame from the scanner camera if it's still running
+        // The html5-qrcode library handles the camera, so getting a raw frame is tricky.
+        // Instead, we will assume the user has to "Verify Face" separately if we want strictness.
+        // BUT, for a smooth flow:
+        // Let's ask user to confirm with a face selfie.
+
+        alert("Please take a selfie to verify attendance.");
+        startFaceCamForAuth(qrData);
+    }
+
+    // Device ID Logic
+    function getDeviceId() {
+        let deviceId = localStorage.getItem('device_id');
+        if (!deviceId) {
+            deviceId = 'dev_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('device_id', deviceId);
+        }
+        return deviceId;
+    }
+
+    // Separate Face Cam Logic
+    let faceStream = null;
+
+    async function startFaceCam() {
+        try {
+            faceStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+            const video = document.getElementById('face-video');
+            video.srcObject = faceStream;
+            video.style.display = 'block';
+            document.getElementById('id-btn-start').style.display = 'none';
+            document.getElementById('id-btn-capture').style.display = 'flex';
+        } catch (e) {
+            alert("Camera access denied");
+        }
+    }
+
+    async function startFaceCamForAuth(qrData) {
+        // Re-use the existing video element or Reader
+        // Since Reader is stopped, let's use the face-video element
+        await startFaceCam();
+
+        // Change button action to verify instead of register
+        const btn = document.getElementById('id-btn-capture');
+        btn.innerText = "Verify & Mark";
+        btn.onclick = () => verifyAndMark(qrData);
+    }
+
+    function stopFaceCam() {
+        if (faceStream) {
+            faceStream.getTracks().forEach(track => track.stop());
+            document.getElementById('face-video').style.display = 'none';
+        }
+    }
+
+    async function captureFace() {
+        const video = document.getElementById('face-video');
+        const canvas = document.getElementById('face-canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        const imageBase64 = canvas.toDataURL('image/jpeg');
+
+        stopFaceCam();
+        document.getElementById('face-preview').src = imageBase64;
+        document.getElementById('face-preview').style.display = 'block';
+
+        // Send to Register API
+        try {
+            const response = await fetch('/api/register_face', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: imageBase64 })
+            });
+            const data = await response.json();
+            alert(data.message);
+            location.reload();
+        } catch (e) {
+            alert("Error registering face");
+        }
+    }
+
+    async function verifyAndMark(qrData) {
+        const video = document.getElementById('face-video');
+        const canvas = document.getElementById('face-canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        const imageBase64 = canvas.toDataURL('image/jpeg');
+
+        stopFaceCam();
+
+        const payload = {
+            qr_data: qrData,
+            latitude: currentCoords ? currentCoords.latitude : null,
+            longitude: currentCoords ? currentCoords.longitude : null,
+            face_image: imageBase64,
+            device_id: getDeviceId()
+        };
+
+
+        try {
+            const response = await fetch('/api/mark_attendance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+            if (data.status === 'success') {
+                alert("Attendance Marked: PRESENT");
+                location.reload();
+            } else {
+                alert("Failed: " + data.message);
+            }
+        } catch (e) {
+            alert("Network error");
+        }
+    }
+</script>
+{% endblock %}

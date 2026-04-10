@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block scripts %}
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <div class="welcome-text">
+        <h2>Mark Attendance</h2>
+        <p>{{ subject }}</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-title">
+        <i class="ri-user-line"></i> Your Details
+    </div>
+
+    <div class="input-group">
+        <input type="text" id="full_name" placeholder="Full Name" required>
+    </div>
+    <div class="input-group">
+        <input type="text" id="roll_no" placeholder="Roll No / ID" required>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-title">
+        <i class="ri-map-pin-line"></i> Location Check
+    </div>
+    <p id="location-status" class="status">Getting location...</p>
+</div>
+
+<!-- Face Verification (Optional/Demo) -->
+<div class="card">
+    <div class="card-title">
+        <i class="ri-camera-lens-line"></i> Verify Identity
+    </div>
+    <div style="text-align: center;">
+        <video id="face-video" style="width: 100%; border-radius: 8px; display:none;" autoplay playsinline></video>
+        <canvas id="face-canvas" style="display:none;"></canvas>
+        <img id="face-preview" style="width: 100%; border-radius: 8px; display:none; margin-bottom: 1rem;">
+
+        <button onclick="startFaceCam()" id="id-btn-start" class="btn-primary" style="margin-bottom: 0.5rem;">Take
+            Selfie</button>
+        <button onclick="captureFace()" id="id-btn-capture" class="btn-primary"
+            style="background: var(--secondary); display:none;">Capture & Mark</button>
+    </div>
+</div>
+
+<script>
+    const SESSION_TOKEN = "{{ token }}";
+    let currentCoords = null;
+    let capturedImage = null;
+
+    // 1. Get Location immediately
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                currentCoords = pos.coords;
+                document.getElementById('location-status').innerHTML = '<i class="ri-check-line"></i> Location Locked';
+                document.getElementById('location-status').classList.add('status-present');
+            },
+            (err) => {
+                document.getElementById('location-status').innerHTML = '<i class="ri-close-line"></i> Permission Denied';
+                document.getElementById('location-status').classList.add('status-absent');
+            }
+        );
+    }
+
+    // 2. Face Cam Logic
+    let faceStream = null;
+
+    async function startFaceCam() {
+        try {
+            faceStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+            const video = document.getElementById('face-video');
+            video.srcObject = faceStream;
+            video.style.display = 'block';
+            document.getElementById('id-btn-start').style.display = 'none';
+            document.getElementById('id-btn-capture').style.display = 'flex';
+        } catch (e) {
+            alert("Camera access denied");
+        }
+    }
+
+    function stopFaceCam() {
+        if (faceStream) {
+            faceStream.getTracks().forEach(track => track.stop());
+            document.getElementById('face-video').style.display = 'none';
+        }
+    }
+
+    async function captureFace() {
+        const name = document.getElementById('full_name').value;
+        const roll = document.getElementById('roll_no').value;
+
+        if (!name || !roll) return alert("Please fill details first.");
+        if (!currentCoords) return alert("Location not found.");
+
+        const video = document.getElementById('face-video');
+        const canvas = document.getElementById('face-canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        capturedImage = canvas.toDataURL('image/jpeg');
+
+        stopFaceCam();
+        document.getElementById('face-preview').src = capturedImage;
+        document.getElementById('face-preview').style.display = 'block';
+
+        submitAttendance();
+    }
+
+    async function submitAttendance() {
+        const name = document.getElementById('full_name').value;
+        const roll = document.getElementById('roll_no').value;
+
+        // Generate Device ID
+        let deviceId = localStorage.getItem('device_id');
+        if (!deviceId) {
+            deviceId = 'guest_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('device_id', deviceId);
+        }
+
+        const payload = {
+            qr_data: SESSION_TOKEN, // In this flow, token is passed in URL, but backend logic uses qr_data param
+            full_name: name,
+            roll_no: roll,
+            latitude: currentCoords ? currentCoords.latitude : null,
+            longitude: currentCoords ? currentCoords.longitude : null,
+            face_image: capturedImage,
+            device_id: deviceId
+        };
+
+        try {
+            const response = await fetch('/api/mark_attendance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+            if (data.status === 'success') {
+                alert("Attendance Marked Successfully!");
+                document.body.innerHTML = "<h2 style='color:white;text-align:center;padding:2rem;'>✅ Presense Recorded</h2>";
+            } else {
+                alert("Failed: " + data.message);
+                // reset cam if needed
+            }
+        } catch (e) {
+            alert("Network error");
+        }
+    }
+</script>
+{% endblock %}
