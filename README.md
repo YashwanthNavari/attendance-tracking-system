@@ -51,16 +51,15 @@ graph TD
 
 ## 🌐 Deployment (Render.com)
 
-This project is optimized for deployment on **Render.com**.
+This project is optimized for deployment on **Render.com** using **Docker**.
 
 1.  **Create a Render Account**: Sign up at [render.com](https://render.com/).
 2.  **New Web Service**: Click "New" > "Web Service" and connect your GitHub repository.
 3.  **Configuration**:
-    - **Runtime**: `Python`
-    - **Build Command**: `pip install -r requirements.txt`
-    - **Start Command**: `gunicorn app:app`
-4.  **Environment Variables**: Add a secret key if needed, though the app generates one automatically.
-5.  **Database**: The app uses SQLite (`attendance.db`). For a permanent database on Render, you should use their **PostgreSQL** service, but for small testing, the local SQLite file will work (note: it will reset on every redeploy unless you use a persistent disk).
+    - **Runtime**: `Docker` (Render should detect the `Dockerfile` automatically)
+    - **Plan**: `Free`
+4.  **Environment Variables**: The app uses port `10000` by default.
+5.  **Database**: The app uses SQLite (`attendance.db`). Since Render's free tier has an ephemeral disk, your database will reset on every redeploy. To keep data permanently, you can upgrade to a Render "Persistent Disk" or use an external PostgreSQL database.
 
 ---
 
