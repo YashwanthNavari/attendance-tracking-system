@@ -1,8 +1,11 @@
 # Use an official Python runtime as a parent image
 FROM python:3.10-slim
 
-# Install system dependencies required for face_recognition and opencv
-RUN apt-get update && apt-get install -y \
+# Prevent apt-get from asking for user input during installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install system dependencies with better resiliency
+RUN apt-get update --fix-missing && apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
     libsm6 \
@@ -10,25 +13,25 @@ RUN apt-get update && apt-get install -y \
     libxrender-dev \
     libgl1-mesa-glx \
     libglib2.0-0 \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Set the working directory in the container
+# Set the working directory
 WORKDIR /app
 
-# Copy the requirements file into the container at /app
+# Copy and install Python dependencies
 COPY requirements.txt .
-
-# Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code into the container
+# Copy the rest of the application code
 COPY . .
 
-# Environment variable to ensure the app processes don't buffer output
+# Environment settings
 ENV PYTHONUNBUFFERED=1
+ENV PORT=10000
 
-# Expose the port the app runs on (Render uses 10000 by default for web services)
+# Expose the port
 EXPOSE 10000
 
-# Run gunicorn when the container launches
+# Start application
 CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:10000"]
