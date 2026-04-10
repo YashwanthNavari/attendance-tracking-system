@@ -1,13 +1,12 @@
-# Use an official Python runtime as a parent image
-FROM python:3.10-slim
+# Use the full Python Bookworm image (more stable and includes build tools)
+FROM python:3.10-bookworm
 
-# Prevent apt-get from asking for user input during installation
+# Prevent apt-get from asking for user input
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install system dependencies with better resiliency
-RUN apt-get update --fix-missing && apt-get install -y --no-install-recommends \
-    build-essential \
-    cmake \
+# Update and install ONLY essential media libraries 
+# (Most build tools like cmake and build-essential are already in Bookworm)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libsm6 \
     libxext6 \
     libxrender-dev \
