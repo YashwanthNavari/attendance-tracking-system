@@ -1,25 +1,16 @@
-# Use the full Python Bookworm image (more stable and includes build tools)
-FROM python:3.10-bookworm
-
-# Prevent apt-get from asking for user input
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Update and install ONLY essential media libraries 
-# (Most build tools like cmake and build-essential are already in Bookworm)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# Use the official pre-built face_recognition image
+# This comes with dlib and face_recognition pre-installed
+FROM ageitgey/face_recognition:latest
 
 # Set the working directory
 WORKDIR /app
 
-# Copy and install Python dependencies
+# Copy the requirements file
 COPY requirements.txt .
+
+# Install Python dependencies
+# We exclude dlib and face_recognition from here if they are already in the base
+# But for safety, we'll keep them in requirements.txt and pip will see they are met
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application code
@@ -32,5 +23,5 @@ ENV PORT=10000
 # Expose the port
 EXPOSE 10000
 
-# Start application
+# Start application using Gunicorn
 CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:10000"]
